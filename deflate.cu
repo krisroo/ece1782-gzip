@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
    int data_bytes = (int)finfo.st_size;
    printf("This file has %d bytes data\n", data_bytes);
 
+   read (fd, fdata, data_bytes);
    
 
    //Set the number of blocks and threads
