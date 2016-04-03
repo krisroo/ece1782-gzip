@@ -14,16 +14,20 @@
 int main(int argc, char *argv[]) 
 {
 	// Do huffman
-
+    unsigned int size = 0;
+    unsigned int *huffman_table = NULL;
+    char *data_in = NULL;
+    char *data_out = NULL;
+    
 	//Set the number of blocks and threads
 	dim3 grid(4, 3, 1);
 	dim3 block(32, 32, 1);
 	
-	deflatekernel<<<grid, block>>>(unsigned int size, unsigned int *huffman_table, char *data_in, char *data_out);
+	deflatekernel<<<grid, block>>>(size, huffman_table, data_in, data_out);
 	
 	// Inflate data_out using zlib
 	
 	// Compare inflated data with input
 
 	return 0;
-} 
+}
