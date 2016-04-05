@@ -10,22 +10,17 @@
 
 #include "deflate_kernel.cu"
 
-#define CHUNK_SIZE 1024
+#define CHUNK_SIZE 32000
 
 // Input: Filename
 int main(int argc, char *argv[]) 
 {
    int i;
-   int fd;
-   char *fdata;
+   int f_in;
+   char *f_out;
    struct stat finfo;  
    char * inputfname;
    char * outputfname;
-
-   unsigned int size;
-   unsigned int *huffman_table;
-   char *data_in;
-   char *data_out;
 
    if (argc < 3)
    {
@@ -36,30 +31,42 @@ int main(int argc, char *argv[])
    inputfname = argv[1];
    outputfname = argv[2];
 
-   fd = open(inputfname, O_RDONLY);
-   fstat(fd, &finfo);
+   f_in = open(inputfname, O_RDONLY);
+   fstat(f_in, &finfo);
 
-   fdata = (char*) malloc(finfo.st_size);
-   int data_bytes = (int)finfo.st_size;
+   f_out = (char*) malloc(finfo.st_size);
+   unsigned int data_bytes = (unsigned int)finfo.st_size;
    printf("This file has %d bytes data\n", data_bytes);
 
-   read (fd, fdata, data_bytes);
+   read (f_in, f_out, data_bytes);
+   
    
 
    //Set the number of blocks and threads
-//   dim3 grid(4, 3, 1);
-//   dim3 block(32, 32, 1);
+   dim3 grid(1, 1, 1);
+   dim3 block(1024, 1, 1);
 
-//   deflatekernel<<<grid, block>>>(unsigned int size, unsigned int *huffman_table, char *data_in, char *data_out);
+   char* d_in;
+   cudaMalloc((void**) &d_in, data_bytes);
+   cudaMemcpy(d_in, f_in, data_bytes, cudaMemcpyHostToDevice);
+
+   char* d_out;
+   cudaMalloc((void**) &d_out, data_bytes);
+   cudaMemset(d_out, 0, data_bytes);
+
+   deflatekernel<<<grid, block>>>(data_bytes, d_in, d_out);
+
+   cudaMemcpy(f_out, d_out, data_bytes, cudaMemcpyDeviceToHost);
 
    // Inflate data_out using zlib
-
+      // Meh
    // Compare inflated data with input
+      // whatever
 
    FILE *writeFile;
    writeFile = fopen(outputfname,"w+");
    for(i = 0; i < data_bytes; i++)
-      fprintf(writeFile,"%c", fdata[i]);
+      fprintf(writeFile,"%c", f_out[i]);
    fclose(writeFile);
 
    return 0;
