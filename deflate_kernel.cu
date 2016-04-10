@@ -44,9 +44,8 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
         __syncthreads();
         
         int divider = 0;
-        int max_divider = CHUNK - MIN_MATCH + 1;
 
-        while(divider < max_divider)
+        while(divider < CHUNK)
         {
             max[tid] = 0;
             pointer[tid] = 0;
