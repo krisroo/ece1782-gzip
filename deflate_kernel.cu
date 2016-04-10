@@ -23,7 +23,10 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
     int blockid = blockIdx.x;
     int tid = threadIdx.y*blockDim.x + threadIdx.x;
     
-    int aligned_chunk_count = ((size + CHUNK - 1)/CHUNK) - 1;
+    int aligned_chunk_count = ((size + CHUNK - 1)/CHUNK);
+    
+    int last_chunk_size = (size%CHUNK > 0) ? size%CHUNK : CHUNK;
+    
     //unsigned int last_chunk_size = aligned_chunk_count*CHUNK - size;
     
     for (unsigned int chunk_repeat = 0; chunk_repeat < aligned_chunk_count; chunk_repeat += gridDim.x)
@@ -34,10 +37,10 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
             
             
         char *current_output = data_out + (chunk_repeat + blockid)*CHUNK;
-        
+        int block_size = (chunk_repeat + blockid + 1 == aligned_chunk_count) ? last_chunk_size : CHUNK;
         
         max[tid] = 0;
-        for (int i = 0; i < CHUNK; i = i + blockDim.x)
+        for (int i = 0; i < block_size; i = i + blockDim.x)
         {
             window[i + tid] = data_in[i + tid + (chunk_repeat+blockid)*CHUNK];
         }
@@ -45,7 +48,7 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
         
         int divider = 0;
 
-        while(divider < CHUNK)
+        while(divider < block_size)
         {
             max[tid] = 0;
             pointer[tid] = 0;
@@ -58,23 +61,10 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
                 unsigned int length = 0;
                 
                 while (  (length < MAX_MATCH)
-                       &&((divider+length)<CHUNK) 
+                       &&((divider+length)<block_size) 
                        &&(window[match_offset+tid+length] == window[divider+length]))
                     length++;
-                /*
-                #pragma unroll
-                for (int i = 0; i < CHUNK; i++) {
-                    if ((divider+i) < CHUNK) {
-                        if (window[match_offset+tid+i] == window[divider+length+i]) {
-                            length = i;
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                */
+
                 if (length < MIN_MATCH)
                     continue;
 
