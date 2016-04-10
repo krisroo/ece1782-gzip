@@ -50,16 +50,30 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
                     break;
                     
                 unsigned int length = 0;
+                
                 while (((divider+length)<CHUNK) && (window[match_offset+tid+length] == window[divider+length]))
                     length++;
-                    
+                /*
+                #pragma unroll
+                for (int i = 0; i < CHUNK; i++) {
+                    if ((divider+i) < CHUNK) {
+                        if (window[match_offset+tid+i] == window[divider+length+i]) {
+                            length = i;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                */
                 if (length < MIN_MATCH)
                     continue;
                 
                 if (length > max[tid])
                 {
                     max[tid] = length;
-                    pointer[tid] = divider - match_offset + tid;
+                    pointer[tid] = divider - (match_offset + tid);
                 }
             }
             __syncthreads();
@@ -86,13 +100,13 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
                 device_output_size += 1;
             } else if (tid == 0)
             {
-                //*(current_output) = 0;
-                *(current_output+0) = (pointer[0] >> 16) & 0xffff;
-                *(current_output+1) = pointer[0] & 0xffff;
-                *(current_output+2) = (max[0] >> 16) & 0xffff;
-                *(current_output+3) = max[0] & 0xffff;
-                current_output = current_output + 4;
-                device_output_size += 4;
+                *(current_output) = 0xCC;
+                *(current_output+1) = (pointer[0] >> 8) & 0xff;
+                *(current_output+2) = pointer[0] & 0xff;
+                *(current_output+3) = (max[0] >> 8) & 0xff;
+                *(current_output+4) = max[0] & 0xff;
+                current_output = current_output + 5;
+                device_output_size += 5;
             }
             if (pointer[0] == 0)
             {
