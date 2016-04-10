@@ -81,7 +81,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
             back = (back << 8) + (*(temp_compressed + 2) & 0xFF);
             unsigned int length = *(temp_compressed + 3) & 0xFF;
             length = (length << 8) + (*(temp_compressed + 4) & 0xFF);
-            printf("match found distance %04x and length %04x\n", back, length);
+            //printf("match found distance %04x and length %04x\n", back, length);
             temp_compressed += 5;
             i += 5;
             outsize += length;
@@ -98,7 +98,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
             }
         } else
         {
-            printf("no match found char is %02x\n", *temp_compressed);
+            //printf("no match found char is %02x\n", *temp_compressed);
             *(buffer + inbuffer) = *temp_compressed;
             temp_compressed += 1;
             inbuffer += 1;
@@ -109,7 +109,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
     if (inbuffer > 0)
         memcpy(temp_uncompressed, buffer, inbuffer);
     
-    return compressed;
+    return uncompressed;
     
 }
 
