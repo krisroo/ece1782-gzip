@@ -16,7 +16,7 @@
 #define GB 1024*MB
 
 #define THREAD_NUM 1024
-#define FLAG 0xCC
+#define FLAG 0x80
 
 // Assuming not going to reach 10% compression ratio
 #define OUTSIZE_MULTIPLIER 10
@@ -49,7 +49,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
     char *temp_compressed = compressed;
     char *temp_uncompressed = uncompressed;
     size_t outsize = 0;
-    
+
     char *buffer;
     buffer = (char *) malloc(96*KB);
     
@@ -71,21 +71,21 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
             }
             memcpy(temp_uncompressed, buffer, 32*KB);
             memcpy(buffer, (buffer + 32*KB), 32*KB);
+            memcpy((buffer + 32*KB), (buffer + 64*KB), 32*KB);
             inbuffer -= 32*KB;
             temp_uncompressed += 32*KB;
         }
         
-        if ((*temp_compressed & 0xff) == FLAG)
+        if ((*temp_compressed & FLAG) == FLAG)
         {
-            unsigned int back = *(temp_compressed + 1) & 0xFF;
-            back = (back << 8) + (*(temp_compressed + 2) & 0xFF);
-            unsigned int length = *(temp_compressed + 3) & 0xFF;
-            length = (length << 8) + (*(temp_compressed + 4) & 0xFF);
+            unsigned int back = *(temp_compressed) & 0x7F;
+            back = (back << 8) + (*(temp_compressed + 1) & 0xFF);
+            unsigned int length = *(temp_compressed + 2) & 0xFF;
             //printf("match found distance %04x and length %04x\n", back, length);
-            temp_compressed += 5;
-            i += 5;
+            temp_compressed += 3;
+            i += 3;
             outsize += length;
-            
+           
             unsigned int back_location = inbuffer - back;
 
             while (length > 0)
@@ -108,7 +108,8 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
     }
     if (inbuffer > 0)
         memcpy(temp_uncompressed, buffer, inbuffer);
-    
+
+
     return uncompressed;
     
 }

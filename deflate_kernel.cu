@@ -5,7 +5,13 @@
 #define SMEM_W 128
 #define SMEM_H 128
 
-#define MIN_MATCH 4
+#define REPL_BIT 24  // 3bytes
+#define FLAG_BIT 1
+#define DIST_BIT 15
+#define LEN_BIT  8
+
+#define MAX_MATCH 255
+#define MIN_MATCH 3
 
 __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, unsigned int* output_size)
 {
@@ -38,8 +44,9 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
         __syncthreads();
         
         int divider = 0;
-        
-        while(divider < 32768)
+        int max_divider = CHUNK - MIN_MATCH + 1;
+
+        while(divider < max_divider)
         {
             max[tid] = 0;
             pointer[tid] = 0;
@@ -51,7 +58,9 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
                     
                 unsigned int length = 0;
                 
-                while (((divider+length)<CHUNK) && (window[match_offset+tid+length] == window[divider+length]))
+                while (  (length < MAX_MATCH)
+                       &&((divider+length)<CHUNK) 
+                       &&(window[match_offset+tid+length] == window[divider+length]))
                     length++;
                 /*
                 #pragma unroll
@@ -69,8 +78,8 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
                 */
                 if (length < MIN_MATCH)
                     continue;
-                
-                if (length > max[tid])
+
+                if (length >= max[tid])
                 {
                     max[tid] = length;
                     pointer[tid] = divider - (match_offset + tid);
@@ -100,13 +109,11 @@ __global__ void deflatekernel(unsigned int size, char *data_in, char *data_out, 
                 device_output_size += 1;
             } else if (tid == 0)
             {
-                *(current_output) = 0xCC;
-                *(current_output+1) = (pointer[0] >> 8) & 0xff;
-                *(current_output+2) = pointer[0] & 0xff;
-                *(current_output+3) = (max[0] >> 8) & 0xff;
-                *(current_output+4) = max[0] & 0xff;
-                current_output = current_output + 5;
-                device_output_size += 5;
+                *(current_output+0) = (pointer[0] >> 8) | 0x80 & 0xff; // OR flag bit
+                *(current_output+1) = pointer[0] & 0xff;
+                *(current_output+2) = max[0] & 0xff;
+                current_output = current_output + 3;
+                device_output_size += 3;
             }
             if (pointer[0] == 0)
             {
