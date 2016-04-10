@@ -57,7 +57,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
     
     for (size_t i = 0; i < compressed_size;)
     {
-        getchar();
+        //getchar();
         
         // Move 32KB over to output whenever there's more than 64KB
         while (inbuffer > 64*KB)
@@ -78,10 +78,10 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
         if ((*temp_compressed & 0xff) == FLAG)
         {
             unsigned int back = *(temp_compressed + 1) & 0xFF;
-            back = (back << 16) + (*(temp_compressed + 2) & 0xFF);
+            back = (back << 8) + (*(temp_compressed + 2) & 0xFF);
             unsigned int length = *(temp_compressed + 3) & 0xFF;
-            length = (length << 16) + (*(temp_compressed + 4) & 0xFF);
-            //printf("match found distance %04x and length %04x\n", back, length);
+            length = (length << 8) + (*(temp_compressed + 4) & 0xFF);
+            printf("match found distance %04x and length %04x\n", back, length);
             temp_compressed += 5;
             i += 5;
             outsize += length;
@@ -98,7 +98,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
             }
         } else
         {
-            //printf("no match found char is %02x\n", *temp_compressed);
+            printf("no match found char is %02x\n", *temp_compressed);
             *(buffer + inbuffer) = *temp_compressed;
             temp_compressed += 1;
             inbuffer += 1;
