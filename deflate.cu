@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -36,6 +35,8 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
         *uncompressed_size = 0;
         return NULL;
     }
+    
+    printf("In inflate. Compressed file size is %u\n", compressed_size);
     
     char *uncompressed = (char*) malloc (OUTSIZE_MULTIPLIER*compressed_size);
     if (uncompressed == NULL)
@@ -92,13 +93,16 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
             {
                 unsigned int copy_amount = (length > back) ? back : length;
                 memcpy((buffer+inbuffer), (buffer+back_location), copy_amount);
+                //for (int j = 0; j< copy_amount; j++)
+                //    printf ("%c", *(buffer+inbuffer + j));
                 length -= copy_amount;
                 inbuffer += copy_amount;
                 
             }
+            //printf("\n");
         } else
         {
-            //printf("no match found char is %02x\n", *temp_compressed);
+            //printf("no match found char is %02x :: %c\n", *temp_compressed, *temp_compressed);
             *(buffer + inbuffer) = *temp_compressed;
             temp_compressed += 1;
             inbuffer += 1;
@@ -109,7 +113,7 @@ char *inflate(char* compressed, size_t compressed_size, size_t *uncompressed_siz
     if (inbuffer > 0)
         memcpy(temp_uncompressed, buffer, inbuffer);
 
-
+    *uncompressed_size = outsize;
     return uncompressed;
     
 }
@@ -166,7 +170,7 @@ int main(int argc, char *argv[])
    cudaMalloc((void**) &d_out, data_bytes);
    cudaMemset(d_out, 0, data_bytes);
 
-   int aligned_chunk_count = ((data_bytes + CHUNK - 1)/CHUNK) - 1;
+   int aligned_chunk_count = ((data_bytes + CHUNK - 1)/CHUNK);
    printf("Number of blocks = %i\n",aligned_chunk_count);
    unsigned int *output_size;
    cudaMalloc((void**) &output_size, sizeof(unsigned int)*aligned_chunk_count);
